@@ -28,9 +28,18 @@ exports.register = async (req, res) => {
 exports.sigin = async (req, res) => {
   const { username, password } = req.body;
 
-  let user = await userModel.findOne({ username, password });
+  let user = await userModel.findOne({ username });
 
   if (!user) {
+    return res.json({
+      success: false,
+      message: "Invalid credentials",
+    });
+  }
+
+  const isMatch = await user.matchPassword(password);
+
+  if (!isMatch) {
     return res.json({
       success: false,
       message: "Invalid credentials",
