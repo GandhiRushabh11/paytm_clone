@@ -1,12 +1,42 @@
 const userModel = require("../models/user");
-exports.register = async (req, res) => {
-  const { username, firstName, lastName, password } = req.body;
 
-  const user = await userModel.create({
+exports.register = async (req, res) => {
+  const { username, firstName, lastName, password, email } = req.body;
+
+  let user = await userModel.findOne({ email });
+
+  if (user) {
+    return res.json({
+      success: false,
+      message: "Email is invalid or already taken",
+    });
+  }
+  user = await userModel.create({
     username,
     firstName,
     lastName,
     password,
+    email,
   });
-  res.status(200).json({ success: true, user });
+
+  const token = user.getSignedjwtToken();
+  res
+    .status(200)
+    .json({ success: true, message: "User created successfully", token });
+};
+
+exports.sigin = async (req, res) => {
+  const { username, password } = req.body;
+
+  let user = await userModel.findOne({ username, password });
+
+  if (!user) {
+    return res.json({
+      success: false,
+      message: "Invalid credentials",
+    });
+  }
+
+  const token = user.getSignedjwtToken();
+  res.status(200).json({ success: true, token });
 };
