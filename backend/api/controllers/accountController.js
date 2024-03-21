@@ -12,26 +12,33 @@ exports.getBalance = async (req, res) => {
 };
 exports.transfer = async (req, res) => {
   const session = await mongoose.startSession();
+
   session.startTransaction();
-  const { to, amount } = req.body;
+  const { amount, to } = req.body;
+
+  // Fetch the accounts within the transaction
   const account = await accountModel.findOne({ userId: req.user._id });
 
   if (!account && account.balance < amount) {
     await session.abortTransaction();
-    console.log("Insufficient balance");
-    return;
+    return res.status(400).json({
+      message: "Insufficient balance",
+    });
   }
 
-  const toAccount = await accountModel.findOne({ userId: to });
+  const toAccount = await accountModel.findOne({
+    userId: to,
+  });
 
   if (!toAccount) {
     await session.abortTransaction();
-    console.log("Invalid account");
-    return;
+    return res.status(400).json({
+      message: "Invalid account",
+    });
   }
   // Perform the transfer
   await accountModel.updateOne(
-    { userId: req.userId },
+    { userId: req.user._id },
     { $inc: { balance: -amount } }
   );
 
@@ -39,8 +46,7 @@ exports.transfer = async (req, res) => {
 
   // Commit the transaction
   await session.commitTransaction();
-  console.log("done");
-  res.status(200).json({
+  res.json({
     success: true,
     message: "Transfer successful",
   });
